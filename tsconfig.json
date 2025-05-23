@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@config/*": ["packages/config/src/*"],
+      "@types/*": ["packages/types/src/*"],
+      "@ui/*": ["packages/ui/src/*"],
+      "@api/*": ["apps/api/src/*"],
+      "@web/*": ["apps/web/src/*"],
+      "@mobile/*": ["apps/mobile/src/*"]
+    }
+  },
+  "files": [],
+  "references": [
+    { "path": "packages/config" },
+    { "path": "packages/types" },
+    { "path": "packages/ui" },
+    { "path": "apps/api" },
+    { "path": "apps/web" },
+    { "path": "apps/mobile" }
+  ]
+}
