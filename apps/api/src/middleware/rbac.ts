@@ -1,25 +1,33 @@
+/* 
+   Lightweight role-based guard.
+   If the user owns at least one of the listed roles, control passes to
+   the next handler; otherwise the request is blocked with HTTP 403.
+*/
+
 import { Request, Response, NextFunction } from 'express';
 
 /**
- * Role-based access control middleware.
+ * Middleware factory that checks the caller’s roles.
  *
- * Usage:
- *   // Only allow users with “admin” role
- *   router.post('/products', jwtAuth(), requireRole('admin'), productController.create);
- *
- * Reads `req.user.roles: string[]` (populated by jwtAuth).
+ * @param allowedRoles  One or more role names, e.g. 'admin', 'editor'.
+ * @returns             Express middleware that enforces the rule set.
  */
 export function requireRole(...allowedRoles: string[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const user = req.user as { roles?: string[] } | undefined;
-    if (!user?.roles) {
-      return res.status(403).json({ message: 'No roles assigned' });
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const roles = (req.user as { roles?: string[] } | undefined)?.roles;
+
+    if (!roles?.length) {
+      res.status(403).json({ message: 'No roles assigned' });
+      return;
     }
-    // Check for intersection
-    const hasRole = user.roles.some(role => allowedRoles.includes(role));
-    if (!hasRole) {
-      return res.status(403).json({ message: 'Insufficient permissions' });
+
+    const match = roles.some(r => allowedRoles.includes(r));
+
+    if (!match) {
+      res.status(403).json({ message: 'Insufficient permissions' });
+      return;
     }
+
     next();
   };
 }

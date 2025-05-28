@@ -3,32 +3,22 @@ import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger';
 
 /**
- * Correlation ID middleware.
+ * Ensures every request carries a correlation identifier.
  *
- * – Generates or reads an `X-Correlation-ID` header on each request.
- * – Attaches it to `req.correlationId` and adds to every log entry.
+ * • Accepts and re-uses an incoming `X-Correlation-ID` header when provided.
+ * • Creates a fresh UUID v4 if the header is missing or empty.
+ * • Exposes the ID on `req.correlationId`, echoes it back in the response,
+ *   and binds a child logger on `req.log` for consistent tracing.
  */
-declare module 'express-serve-static-core' {
-  interface Request {
-    correlationId?: string;
-  }
-}
+export const correlationId =
+  () => (req: Request, res: Response, next: NextFunction): void => {
+    const raw = req.get('X-Correlation-ID');
+    const id = raw && raw.trim() ? raw : uuidv4();
 
-export function correlationId() {
-  return (req: Request, _res: Response, next: NextFunction) => {
-    // 1) Read incoming header or generate a new UUID
-    const incoming = req.header('X-Correlation-ID');
-    const id = typeof incoming === 'string' && incoming.trim().length > 0
-      ? incoming
-      : uuidv4();
-
-    // 2) Attach to request and response headers
     req.correlationId = id;
-    _res.setHeader('X-Correlation-ID', id);
+    res.setHeader('X-Correlation-ID', id);
 
-    // 3) Bind logger to include correlation ID
     req.log = logger.child({ correlationId: id });
 
     next();
   };
-}

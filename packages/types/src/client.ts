@@ -1,46 +1,45 @@
-// packages/types/src/client.ts
 import { z } from "zod";
 
 /**
- * Zod schema for a Client record.
- *
- * Fields:
- * - `id`         : UUID string, primary key.
- * - `code`       : Unique alphanumeric client code (non-empty).
- * - `name`       : Full name of the client (non-empty).
- * - `nit`        : Unique tax identifier (NIT) (non-empty).
- * - `email`      : Optional contact email (must be valid).
- * - `phone`      : Optional phone number.
- * - `isDeleted`  : Soft-delete flag.
- * - `createdAt`  : ISO-8601 creation timestamp.
- * - `updatedAt`  : ISO-8601 last-update timestamp.
+ * Full Client record schema (1-to-1 with DB columns).
  */
 export const ClientSchema = z.object({
-  id:         z.string().uuid(),
-  code:       z.string().nonempty(),
-  name:       z.string().nonempty(),
-  nit:        z.string().nonempty(),
-  email:      z.string().email().nullable().optional(),
-  phone:      z.string().nullable().optional(),
-  isDeleted:  z.boolean(),
-  createdAt:  z.string().datetime(),
-  updatedAt:  z.string().datetime(),
+  id: z.string().uuid(),
+  code: z
+    .string()
+    .regex(/^[A-Z0-9-]{3,50}$/, {
+      message: "Code must be 3-50 characters: uppercase letters, digits or '-'",
+    }),
+  name: z.string().min(3).max(100),
+  nit: z
+    .string()
+    .regex(/^[0-9\-]{6,20}$/, { message: "Invalid NIT format" }),
+  email: z
+    .string()
+    .email({ message: "Invalid email address" })
+    .max(100)
+    .nullable()
+    .optional(),
+  phone: z
+    .string()
+    .regex(/^\+?[0-9]{7,20}$/, { message: "Invalid phone number" })
+    .nullable()
+    .optional(),
+  isDeleted: z.boolean(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
 });
 
-/** TS type for full Client record. */
 export type Client = z.infer<typeof ClientSchema>;
 
 /**
- * Response schema: what is sent back to clients, excludes `isDeleted`.
+ * Outbound shape (excludes soft-delete flag).
  */
 export const ClientResponseSchema = ClientSchema.omit({ isDeleted: true });
-
-/** TS type for API response shape. */
 export type ClientResponse = z.infer<typeof ClientResponseSchema>;
 
 /**
- * Schema for creating a Client.
- * Excludes system and soft-delete fields (id, isDeleted, createdAt, updatedAt).
+ * Payload for client creation.
  */
 export const ClientCreateSchema = ClientSchema.pick({
   code: true,
@@ -52,8 +51,7 @@ export const ClientCreateSchema = ClientSchema.pick({
 export type ClientCreate = z.infer<typeof ClientCreateSchema>;
 
 /**
- * Schema for updating a Client.
- * All create-fields optional.
+ * Payload for partial client updates.
  */
 export const ClientUpdateSchema = ClientCreateSchema.partial();
 export type ClientUpdate = z.infer<typeof ClientUpdateSchema>;

@@ -1,29 +1,32 @@
 import { AnyZodObject, ZodSchema } from 'zod';
 import { Request, Response, NextFunction } from 'express';
-import sanitize from 'perfect-express-sanitizer';
+import pes from 'perfect-express-sanitizer';          /* note the default import */
 
-/* Helpers for validating body, query, and params */
-export const validateBody = (schema: AnyZodObject) => validate('body', schema);
-export const validateQuery = (schema: AnyZodObject) => validate('query', schema);
+/* Convenience wrappers */
+export const validateBody   = (schema: AnyZodObject) => validate('body',   schema);
+export const validateQuery  = (schema: AnyZodObject) => validate('query',  schema);
 export const validateParams = (schema: AnyZodObject) => validate('params', schema);
 
-/**
- * Generic validator that also sanitizes inputs to prevent XSS/SQLi.
- *
- * @param location  One of 'body' | 'query' | 'params'.
- * @param schema    A Zod schema describing the expected shape.
- */
-function validate(location: 'body' | 'query' | 'params', schema: ZodSchema) {
+/* Core validator */
+function validate(
+  location: 'body' | 'query' | 'params',
+  schema: ZodSchema,
+) {
   return (req: Request, _res: Response, next: NextFunction) => {
     try {
-      // 1) Sanitize all incoming data (removes scripts, escapes dangerous chars) :contentReference[oaicite:6]{index=6}
-      const cleaned = sanitize(req[location]);
+      /* 1 ·  Deep-copy and scrub input.
+         The helper recurses objects and arrays, removing scripts and the usual
+         injection vectors.  SQL/NoSQL flags left false—Prisma handles that.   */
+      const cleaned = pes.sanitize.prepareSanitize(
+        req[location],
+        { xss: true }
+      );
 
-      // 2) Validate & optionally coerce types with Zod
-      const result = schema.parse(cleaned);
+      /* 2 ·  Validate + coerce types. */
+      const parsed = schema.parse(cleaned);
 
-      // 3) Overwrite the request object with the parsed & sanitized data
-      req[location] = result;
+      /* 3 ·  Replace the original payload so downstream code sees safe data. */
+      req[location] = parsed as typeof req[typeof location];
       next();
     } catch (err) {
       next(err);

@@ -17,7 +17,7 @@ const options = {
     },
     servers: [{ url: '/api' }],
   },
-  apis: ['./src/controllers/*.ts'],  // path to your controller files
+  apis: ['./src/controllers/*.ts'],  
 };
 
 const spec = swaggerJsdoc(options);
