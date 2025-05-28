@@ -1,0 +1,166 @@
+
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/*'
+    paths:
+      - 'apps/api/**'
+      - 'apps/web/**'
+      - 'apps/mobile/**'
+      - 'packages/**'
+      - 'infra/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'apps/api/**'
+      - 'apps/web/**'
+      - 'apps/mobile/**'
+      - 'packages/**'
+      - 'infra/**'
+
+jobs:
+  # --------------------------------------------------------------------------
+  # 1. Lint & Security Scan
+  # --------------------------------------------------------------------------
+  lint:
+    name: Lint & Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: pnpm run lint
+
+      - name: Run Vulnerability Audit
+        run: pnpm audit --audit-level=moderate
+
+  # --------------------------------------------------------------------------
+  # 2. API Tests & Build
+  # --------------------------------------------------------------------------
+  test-api:
+    name: Test & Build API
+    needs: lint
+    if: |
+      github.event_name == 'pull_request' ||
+      contains(github.event.head_commit.message, 'apps/api')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v3
+      - run: pnpm install
+      - name: Run API unit tests
+        run: pnpm run test
+      - name: Compile TypeScript
+        run: pnpm run build
+      - name: Run database migrations (Prisma)
+        run: pnpm run prisma:migrate:deploy
+
+  # --------------------------------------------------------------------------
+  # 3. Web Tests & Build
+  # --------------------------------------------------------------------------
+  test-web:
+    name: Test & Build Web
+    needs: lint
+    if: |
+      github.event_name == 'pull_request' ||
+      contains(github.event.head_commit.message, 'apps/web')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v3
+      - run: pnpm install
+      - name: Run Web unit tests
+        run: pnpm run test
+      - name: Build Web bundle
+        run: pnpm run build
+
+  # --------------------------------------------------------------------------
+  # 4. Mobile Tests & Build
+  # --------------------------------------------------------------------------
+  test-mobile:
+    name: Test & Build Mobile
+    needs: lint
+    if: |
+      github.event_name == 'pull_request' ||
+      contains(github.event.head_commit.message, 'apps/mobile')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v3
+      - run: pnpm install
+      - name: Run Mobile unit tests
+        run: pnpm run test
+      - name: Build Mobile app
+        run: pnpm run build
+
+  # --------------------------------------------------------------------------
+  # 5. Deploy API
+  # --------------------------------------------------------------------------
+  deploy-api:
+    name: Deploy API
+    needs: test-api
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v3
+      - run: pnpm install
+      - name: Run migrations
+        run: pnpm run prisma:migrate:deploy
+      - name: Deploy to Backend
+        run: pnpm run deploy:api
+
+
+  # --------------------------------------------------------------------------
+  # 6. Deploy Web
+  # --------------------------------------------------------------------------
+  deploy-web:
+    name: Deploy Web
+    needs: test-web
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v3
+      - run: pnpm install
+      - name: Deploy to Web Hosting
+        run: pnpm run deploy:web
+        # e.g. Netlify or Vercel CLI
+
+  # --------------------------------------------------------------------------
+  # 7. Deploy Mobile
+  # --------------------------------------------------------------------------
+  deploy-mobile:
+    name: Deploy Mobile
+    needs: test-mobile
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v3
+      - run: pnpm install
+      - name: Deploy to App Distribution
+        run: pnpm run deploy:mobile
+

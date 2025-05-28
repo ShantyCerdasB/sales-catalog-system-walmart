@@ -1,0 +1,22 @@
+{
+  "name": "@sales-catalog/config",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint '**/*.{ts,js,tsx,jsx}'",
+    "format": "prettier --write .",
+    "test:jest": "jest --config jest.config.js",
+    "test:vitest": "vitest"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.x",
+    "@typescript-eslint/parser": "^5.x",
+    "eslint": "^8.x",
+    "eslint-config-prettier": "^8.x",
+    "prettier": "^2.x",
+    "jest": "^29.x",
+    "ts-jest": "^29.x",
+    "vitest": "^0.x"
+  }
+}

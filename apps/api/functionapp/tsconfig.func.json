@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../dist/functions",
+    "rootDir": ".",
+    "module": "commonjs",
+    "types": ["@azure/functions"]
+  },
+  "include": ["**/*.ts"]
+}
