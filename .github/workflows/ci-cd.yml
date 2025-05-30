@@ -33,13 +33,17 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
+      # (Opcional) Instala todos los workspaces en la raíz
+      - name: Install root dependencies
+        run: npm ci
+
       - name: Install API dependencies
         working-directory: api
-        run: npm ci
+        run: npm install
 
       - name: Install Web dependencies
         working-directory: web
-        run: npm ci
+        run: npm install
 
       - name: Generate Prisma client
         working-directory: api
