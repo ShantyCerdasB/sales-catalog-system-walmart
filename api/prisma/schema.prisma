@@ -1,0 +1,143 @@
+// schema.prisma
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "sqlserver"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model User {
+  id           String      @id @default(uuid())
+  username     String      @unique
+  passwordHash String
+  email        String?     @unique @db.VarChar(100) 
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @default(now()) @updatedAt
+
+  roles            UserRole[]
+  productsCreated  Product[]  @relation("ProductCreatedBy")
+  clientsCreated   Client[]   @relation("ClientCreatedBy")
+  discountsCreated Discount[] @relation("DiscountCreatedBy")
+  salesCreated     Sale[]     @relation("SaleCreatedBy")
+}
+
+model Role {
+  name  String    @id @db.VarChar(30)
+  users UserRole[]
+}
+
+model UserRole {
+  userId String
+  roleId String    @db.VarChar(30)
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  role   Role @relation(fields: [roleId], references: [name], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userId, roleId])
+}
+
+
+model Product {
+  id          String      @id @default(uuid())
+  code        String      @unique @db.VarChar(50)
+  name        String      @db.VarChar(100)
+  description String?     @db.VarChar(255)
+  price       Decimal     @db.Decimal(18, 2)
+  unit        String      @db.VarChar(20)
+  isDeleted   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @default(now()) @updatedAt
+
+  createdById String?
+  createdBy   User?       @relation("ProductCreatedBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  discount   Discount?
+  saleItems  SaleItem[]
+
+  @@index([code], map: "idx_Product_code")
+  @@index([name], map: "idx_Product_name")
+}
+
+model Discount {
+  id           String      @id @default(uuid())
+  code         String      @unique @db.VarChar(50)
+  percentage   Int         @db.SmallInt
+  validFrom    DateTime
+  validTo      DateTime?
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @default(now()) @updatedAt
+
+  createdById  String?
+  createdBy    User?       @relation("DiscountCreatedBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  product      Product     @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  productId    String      @unique
+
+  @@index([productId], map: "idx_Discount_productId")
+}
+
+model Client {
+  id           String      @id @default(uuid())
+  code         String      @unique @db.VarChar(50)
+  name         String      @db.VarChar(100)
+  nit          String      @unique @db.VarChar(20)
+  phone        String?     @db.VarChar(20)
+  email        String?     @db.VarChar(100)
+  isDeleted    Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @default(now()) @updatedAt
+
+  createdById  String?
+  createdBy    User?       @relation("ClientCreatedBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  sales        Sale[]
+
+  @@index([nit], map: "idx_Client_nit")
+}
+
+model Sale {
+  id             String      @id @default(uuid())
+  date           DateTime    @default(now())
+  subtotal       Decimal     @db.Decimal(18, 2)
+  discountTotal  Decimal     @db.Decimal(18, 2)
+  total          Decimal     @db.Decimal(18, 2)
+  paymentMethod  String      @db.VarChar(20)
+  isCanceled     Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @default(now()) @updatedAt
+
+  createdById    String?
+  createdBy      User?       @relation("SaleCreatedBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: Cascade)
+
+  clientId       String?
+  client         Client?     @relation(fields: [clientId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  items          SaleItem[]
+
+  @@index([date], map: "idx_Sale_date")
+  @@index([clientId], map: "idx_Sale_clientId")
+}
+
+model SaleItem {
+  id              String    @id @default(uuid())
+  quantity        Int
+  unitPrice       Decimal   @db.Decimal(18, 2)
+  discountApplied Decimal   @db.Decimal(18, 2)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+
+  saleId          String
+  sale            Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: Cascade)
+
+  @@index([saleId], map: "idx_SaleItem_saleId")
+  @@index([productId], map: "idx_SaleItem_productId")
+}

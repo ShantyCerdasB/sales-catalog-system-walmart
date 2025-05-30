@@ -1,0 +1,83 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  # Application Insights key, etc., if needed for runtime
+  APP_INSIGHTS_KEY: ${{ secrets.APP_INSIGHTS_KEY }}
+  WEBAPP_URL: ${{ secrets.WEBAPP_URL }}          
+  DATABASE_URL: >                             
+    sqlserver://sqladmin:${{ secrets.DB_PASSWORD }}@
+    ${ { secrets.SQL_SERVER_FQDN }}:1433;
+    database=${{ secrets.SQL_DATABASE }};
+    encrypt=true;
+    trustServerCertificate=false;
+    hostNameInCertificate=*.database.windows.net;
+    loginTimeout=30;
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build & bundle backend + static site
+        run: |
+          npm run build:api
+          npm run build:web
+          # copy the web build into the API dist folder
+          rm -rf api/dist/web-dist
+          mkdir -p api/dist/web-dist
+          cp -R web/dist/* api/dist/web-dist/
+
+      - name: Run unit & integration tests
+        working-directory: api
+        run: npm test
+
+  deploy-and-load-test:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ secrets.WEBAPP_NAME }}
+          package: api/dist
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: |
+          cd api
+          npx prisma migrate deploy
+          npm run seed
+
+      - name: Run performance tests
+        uses: gh-actions-hammer/load-test@v1
+        with:
+          config-file: perf/load-test.yml
+          target: ${{ env.WEBAPP_URL }}/api
