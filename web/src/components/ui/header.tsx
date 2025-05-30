@@ -32,11 +32,6 @@ export default function Header() {
         {/* Logo */}
         <Link to="/" className="-m-1.5 p-1.5">
           <span className="sr-only">Sales Catalog</span>
-          <img
-            src="/logo192.png"
-            alt="Sales Catalog Logo"
-            className="h-8 w-auto"
-          />
         </Link>
 
         {/* Desktop links */}
