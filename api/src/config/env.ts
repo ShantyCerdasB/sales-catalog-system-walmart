@@ -15,14 +15,14 @@ const envSchema = z.object({
   WEBAPP_URL:       z.string().url(),
 
 
-
-  /* Observability */
-  APP_INSIGHTS_KEY: z.string(),
-
   /* Database */
   DATABASE_URL:        z.string(),
   SHADOW_DATABASE_URL: z.string().optional(),
 
+
+  /* JSON Web Tokens  */
+  JWT_SECRET:         z.string(),  /* strong random key for HS256 signing */
+  TOKEN_ISSUER_LOCAL: z.string(),  /* issuer claim used by our own tokens */
 
 });
 
@@ -38,9 +38,9 @@ const env = initEnv();
 
 export const {
   WEBAPP_URL,
-
-  APP_INSIGHTS_KEY,
   DATABASE_URL,
   SHADOW_DATABASE_URL,
+  JWT_SECRET,
+  TOKEN_ISSUER_LOCAL,
 
 } = env;
