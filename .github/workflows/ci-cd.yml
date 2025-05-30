@@ -48,12 +48,14 @@ jobs:
         working-directory: web
         run: npm run build
 
-      - name: Create .env for API
+      - name: Create .env for API tests
         working-directory: api
         run: |
           cat <<EOF > .env
           DATABASE_URL="${{ secrets.DATABASE_URL }}"
           SHADOW_DATABASE_URL="${{ secrets.SHADOW_DATABASE_URL }}"
+          JWT_SECRET="${{ secrets.JWT_SECRET }}"
+          TOKEN_ISSUER_LOCAL="${{ secrets.TOKEN_ISSUER_LOCAL }}"
           APP_INSIGHTS_KEY="${{ secrets.APP_INSIGHTS_KEY }}"
           EOF
 
@@ -85,6 +87,8 @@ jobs:
           cat <<EOF > .env
           DATABASE_URL="${{ secrets.DATABASE_URL }}"
           SHADOW_DATABASE_URL="${{ secrets.SHADOW_DATABASE_URL }}"
+          JWT_SECRET="${{ secrets.JWT_SECRET }}"
+          TOKEN_ISSUER_LOCAL="${{ secrets.TOKEN_ISSUER_LOCAL }}"
           APP_INSIGHTS_KEY="${{ secrets.APP_INSIGHTS_KEY }}"
           EOF
 
