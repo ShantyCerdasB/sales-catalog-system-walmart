@@ -2,6 +2,16 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import { JWT_SECRET, TOKEN_ISSUER_LOCAL } from '../config/env';
 
 /**
+ * Ensure critical environment variables are set at runtime.
+ */
+if (!JWT_SECRET) {
+  throw new Error('Missing JWT_SECRET environment variable');
+}
+if (!TOKEN_ISSUER_LOCAL) {
+  throw new Error('Missing TOKEN_ISSUER_LOCAL environment variable');
+}
+
+/**
  * Payload structure for locally-signed tokens.
  */
 export interface LocalPayload {
@@ -9,8 +19,9 @@ export interface LocalPayload {
   id: string;
   /** User’s email address */
   email: string;
+  /** Roles assigned to the user */
   roles?: string[];
-  /** Issuer identifier, always equals TOKEN_ISSUER_LOCAL */
+  /** Issuer identifier (should match TOKEN_ISSUER_LOCAL) */
   iss: string;
 }
 
@@ -26,27 +37,31 @@ export function signLocalToken(
   expiresIn: SignOptions['expiresIn'] = '15m'
 ): string {
   const opts: SignOptions = { algorithm: 'HS256', expiresIn };
-  // Map `id` to JWT `sub`, and inject our issuer claim
-  const tokenPayload = { sub: payload.id, email: payload.email, roles: payload.roles, iss: TOKEN_ISSUER_LOCAL };
-  return jwt.sign(tokenPayload, JWT_SECRET, opts);
+  const tokenPayload = {
+    sub: payload.id,
+    email: payload.email,
+    roles: payload.roles,
+    iss: TOKEN_ISSUER_LOCAL! // non-null assertion
+  };
+  return jwt.sign(tokenPayload, JWT_SECRET!, opts); // non-null assertion
 }
 
 /**
  * Verify an HS256 JWT issued by us, returning the decoded LocalPayload.
  *
  * @param token   JWT string from client
- * @throws        JsonWebTokenError if invalid or expired, or if issuer mismatch
+ * @throws        JsonWebTokenError if invalid, expired, or issuer mismatch
  */
 export function verifyLocalToken(token: string): LocalPayload {
-  const decoded = jwt.verify(token, JWT_SECRET, {
+  const decoded = jwt.verify(token, JWT_SECRET!, {
     algorithms: ['HS256'],
-    issuer: TOKEN_ISSUER_LOCAL,
+    issuer: TOKEN_ISSUER_LOCAL!
   }) as jwt.JwtPayload;
 
   return {
-    id:    decoded.sub as string,
+    id: decoded.sub as string,
     email: decoded.email as string,
     roles: decoded.roles as string[] | undefined,
-    iss:   decoded.iss as string,
+    iss: decoded.iss as string
   };
 }
