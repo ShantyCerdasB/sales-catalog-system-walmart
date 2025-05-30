@@ -12,7 +12,13 @@ export interface Product {
   description?: string | null
   price: number
   unit: string
-  discount?: { percentage: number }
+    discount?: {
+    percentage: number
+  }
+  isDeleted?: boolean
+  createdAt: string
+  updatedAt: string
+  
 }
 
 /**

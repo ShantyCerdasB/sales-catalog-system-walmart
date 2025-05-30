@@ -4,7 +4,14 @@ import { getAccessToken, onTokenRefresh } from '../auth/useAuth'
 const apiClient = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
-  withCredentials: true, // send and accept HttpOnly cookies
+  withCredentials: true,
+})
+
+apiClient.interceptors.request.use(config => {
+  if (config.method === 'delete') {
+    config.baseURL = ''
+  }
+  return config
 })
 
 apiClient.interceptors.request.use(

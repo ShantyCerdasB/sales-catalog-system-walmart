@@ -99,7 +99,7 @@ jobs:
           npm run seed
 
       - name: Run performance tests
-        uses: gh-actions-hammer/load-test@v1
+        uses: ./.github/actions/load-test
         with:
           config-file: perf/load-test.yml
           target: ${{ secrets.WEBAPP_URL }}/api
