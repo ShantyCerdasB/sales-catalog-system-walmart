@@ -11,20 +11,13 @@ on:
 env:
   APP_INSIGHTS_KEY: ${{ secrets.APP_INSIGHTS_KEY }}
   WEBAPP_URL:     ${{ secrets.WEBAPP_URL }}
-  DATABASE_URL: >
-    sqlserver://sqladmin:${{ secrets.DB_PASSWORD }}@
-    ${{ secrets.SQL_SERVER_FQDN }}:1433;
-    database=${{ secrets.SQL_DATABASE }};
-    encrypt=true;
-    trustServerCertificate=false;
-    hostNameInCertificate=*.database.windows.net;
-    loginTimeout=30;
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -55,12 +48,13 @@ jobs:
         working-directory: web
         run: npm run build
 
-
-      - name: Create .env for API tests
+      - name: Create .env for API
         working-directory: api
         run: |
           cat <<EOF > .env
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          DATABASE_URL="${{ secrets.DATABASE_URL }}"
+          SHADOW_DATABASE_URL="${{ secrets.SHADOW_DATABASE_URL }}"
+          APP_INSIGHTS_KEY="${{ secrets.APP_INSIGHTS_KEY }}"
           EOF
 
       - name: Run unit & integration tests
@@ -71,7 +65,8 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Log in to Azure
         uses: azure/login@v1
@@ -84,11 +79,18 @@ jobs:
           app-name: ${{ secrets.WEBAPP_NAME }}
           package: api/dist
 
-      - name: Run database migrations & seed
-        env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+      - name: Create .env for deploy
+        working-directory: api
         run: |
-          cd api
+          cat <<EOF > .env
+          DATABASE_URL="${{ secrets.DATABASE_URL }}"
+          SHADOW_DATABASE_URL="${{ secrets.SHADOW_DATABASE_URL }}"
+          APP_INSIGHTS_KEY="${{ secrets.APP_INSIGHTS_KEY }}"
+          EOF
+
+      - name: Run database migrations & seed
+        working-directory: api
+        run: |
           npx prisma migrate deploy
           npm run seed
 
@@ -96,4 +98,4 @@ jobs:
         uses: gh-actions-hammer/load-test@v1
         with:
           config-file: perf/load-test.yml
-          target: ${{ env.WEBAPP_URL }}/api
+          target: ${{ secrets.WEBAPP_URL }}/api
