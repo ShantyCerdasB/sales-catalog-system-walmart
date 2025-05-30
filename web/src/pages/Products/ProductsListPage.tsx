@@ -10,6 +10,7 @@ import apiClient from '../../api/apiClient'
  */
 const productFields: Field<Product>[] = [
   { name: 'code',        label: 'Code',        type: 'text',   required: true },
+  { name: 'id',        label: 'Id',           type: 'text',   required: true },
   { name: 'name',        label: 'Name',        type: 'text',   required: true },
   { name: 'description', label: 'Description', type: 'text' },
   { name: 'price',       label: 'Price',       type: 'number', required: true },
