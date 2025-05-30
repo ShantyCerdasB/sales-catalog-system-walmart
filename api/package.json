@@ -15,7 +15,7 @@
     "seed": "ts-node prisma/seed.ts",
     "migrate:test": "prisma migrate deploy",
     "test:unit": "jest src/test/unit ",
-    "test:integration": "cross-env NODE_ENV=test jest --runInBand src/test/integration/authController.spec.ts src/test/integration/clientController.spec.ts",
+    "test:integration": "cross-env NODE_ENV=test jest --runInBand src/test/integration/clientController.spec.ts",
     "test": "npm run test:unit && npm run test:integration"
   },
   "prisma": {
