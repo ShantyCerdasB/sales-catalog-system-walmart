@@ -10,7 +10,7 @@
   "scripts": {
     "clean": "rimraf dist api/web-dist",
     "build:web": "npm --prefix web run build",
-    "build:api": "tsc -p tsconfig.json",
+    "build:api": "tsc -p api/tsconfig.json",
     "build": "npm run clean && npm run build:web && npm run build:api",
     "dev:api": "ts-node-dev --respawn --transpile-only src/index.ts",
     "dev": "npm run clean && npm run build:web && npm run dev:api",

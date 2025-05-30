@@ -195,14 +195,7 @@ export default function Header() {
                       onClick={() => setMobileMenuOpen(false)}
                       className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                     >
-                      Top Products
-                    </Link>
-                    <Link
-                      to="/reports/top-clients"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-                    >
-                      Top Clients
+                      Top products and clients
                     </Link>
                   </DisclosurePanel>
                 </>
