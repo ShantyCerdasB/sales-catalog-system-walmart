@@ -2,11 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 env:
   APP_INSIGHTS_KEY: ${{ secrets.APP_INSIGHTS_KEY }}
@@ -24,18 +22,13 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
-
-      # (Opcional) Instala todos los workspaces en la raíz
-      - name: Install root dependencies
-        run: npm ci
 
       - name: Install API dependencies
         working-directory: api
@@ -57,13 +50,8 @@ jobs:
         working-directory: web
         run: npm run build
 
-      - name: Copy Web dist into API
-        run: |
-          rm -rf api/dist/web-dist
-          mkdir -p api/dist/web-dist
-          cp -R web/dist/* api/dist/web-dist/
 
-      - name: Run unit & integration tests
+      - name: Run API tests
         working-directory: api
         run: npm test
 
@@ -71,8 +59,7 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Log in to Azure
         uses: azure/login@v1
@@ -85,7 +72,7 @@ jobs:
           app-name: ${{ secrets.WEBAPP_NAME }}
           package: api/dist
 
-      - name: Run database migrations & seed
+      - name: Run DB migrations & seed
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
         run: |
