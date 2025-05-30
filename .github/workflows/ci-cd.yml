@@ -10,8 +10,8 @@ on:
 
 env:
   APP_INSIGHTS_KEY: ${{ secrets.APP_INSIGHTS_KEY }}
-  WEBAPP_URL: ${{ secrets.WEBAPP_URL }}          
-  DATABASE_URL: >                             
+  WEBAPP_URL:     ${{ secrets.WEBAPP_URL }}
+  DATABASE_URL: >
     sqlserver://sqladmin:${{ secrets.DB_PASSWORD }}@
     ${{ secrets.SQL_SERVER_FQDN }}:1433;
     database=${{ secrets.SQL_DATABASE }};
@@ -33,13 +33,28 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm install    
+      - name: Install API dependencies
+        working-directory: api
+        run: npm ci
 
-      - name: Build & bundle backend + static site
+      - name: Install Web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: api
+        run: npx prisma generate
+
+      - name: Build API
+        working-directory: api
+        run: npm run build
+
+      - name: Build Web
+        working-directory: web
+        run: npm run build
+
+      - name: Copy Web dist into API
         run: |
-          npm run build:api
-          npm run build:web
           rm -rf api/dist/web-dist
           mkdir -p api/dist/web-dist
           cp -R web/dist/* api/dist/web-dist/
@@ -66,7 +81,7 @@ jobs:
           app-name: ${{ secrets.WEBAPP_NAME }}
           package: api/dist
 
-      - name: Run database migrations
+      - name: Run database migrations & seed
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
         run: |

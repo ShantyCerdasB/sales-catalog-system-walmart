@@ -1,8 +1,5 @@
-// api/src/controllers/saleItemController.ts
-
 import { Router, Request, Response, NextFunction } from "express";
 import { SaleItemService } from "../services/saleItemService";
-import { jwtAuth } from "../middleware/jwtAuth";
 import { validateParams } from "../middleware/validateRequest";
 import { z } from "zod";
 

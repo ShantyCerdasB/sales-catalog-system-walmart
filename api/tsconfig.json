@@ -2,23 +2,21 @@
   "compilerOptions": {
     "target": "ES2021",
     "module": "CommonJS",
-    "rootDir": ".",
+    "rootDir": "src",
     "outDir": "dist",
-    "moduleResolution": "Node",
+    "moduleResolution": "node",
     "strict": true,
     "esModuleInterop": true,
+
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": "src",
-    "paths": {
-      "@types/*": ["types/*"]
-    },
+    "baseUrl": ".",
+    "paths": {},
     "composite": false
   },
   "include": [
     "src/**/*.ts",
-    "prisma/seed.ts",
-    "src/types/**/*.d.ts"
+    "../prisma/seed.ts"
   ],
   "exclude": [
     "node_modules",

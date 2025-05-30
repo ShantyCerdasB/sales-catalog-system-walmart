@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { SaleService } from "../services/saleService";
 import { validateBody, validateParams, validateQuery } from "../middleware/validateRequest";
-import { jwtAuth } from "../middleware/jwtAuth";
 import {
   SaleCreateSchema,
   SaleCancelSchema,
