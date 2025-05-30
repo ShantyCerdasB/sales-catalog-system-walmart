@@ -13,6 +13,7 @@ prisma/migrations/
 .expo/
 .expo-shared/
 
+web-dist
 # Logs
 *.log
 npm-debug.log*

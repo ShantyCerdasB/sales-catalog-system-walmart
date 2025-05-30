@@ -1,166 +1,83 @@
-
-
 name: CI/CD Pipeline
 
 on:
   push:
     branches:
       - main
-      - 'release/*'
-    paths:
-      - 'apps/api/**'
-      - 'apps/web/**'
-      - 'apps/mobile/**'
-      - 'packages/**'
-      - 'infra/**'
   pull_request:
     branches:
       - main
-      - develop
-    paths:
-      - 'apps/api/**'
-      - 'apps/web/**'
-      - 'apps/mobile/**'
-      - 'packages/**'
-      - 'infra/**'
+
+env:
+  # Application Insights key, etc., if needed for runtime
+  APP_INSIGHTS_KEY: ${{ secrets.APP_INSIGHTS_KEY }}
+  WEBAPP_URL: ${{ secrets.WEBAPP_URL }}          
+  DATABASE_URL: >                             
+    sqlserver://sqladmin:${{ secrets.DB_PASSWORD }}@
+    ${ { secrets.SQL_SERVER_FQDN }}:1433;
+    database=${{ secrets.SQL_DATABASE }};
+    encrypt=true;
+    trustServerCertificate=false;
+    hostNameInCertificate=*.database.windows.net;
+    loginTimeout=30;
 
 jobs:
-  # --------------------------------------------------------------------------
-  # 1. Lint & Security Scan
-  # --------------------------------------------------------------------------
-  lint:
-    name: Lint & Security
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
-      - name: Run ESLint
-        run: pnpm run lint
+      - name: Build & bundle backend + static site
+        run: |
+          npm run build:api
+          npm run build:web
+          # copy the web build into the API dist folder
+          rm -rf api/dist/web-dist
+          mkdir -p api/dist/web-dist
+          cp -R web/dist/* api/dist/web-dist/
 
-      - name: Run Vulnerability Audit
-        run: pnpm audit --audit-level=moderate
+      - name: Run unit & integration tests
+        working-directory: api
+        run: npm test
 
-  # --------------------------------------------------------------------------
-  # 2. API Tests & Build
-  # --------------------------------------------------------------------------
-  test-api:
-    name: Test & Build API
-    needs: lint
-    if: |
-      github.event_name == 'pull_request' ||
-      contains(github.event.head_commit.message, 'apps/api')
+  deploy-and-load-test:
+    needs: build-and-test
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/api
     steps:
-      - uses: actions/checkout@v3
-      - run: pnpm install
-      - name: Run API unit tests
-        run: pnpm run test
-      - name: Compile TypeScript
-        run: pnpm run build
-      - name: Run database migrations (Prisma)
-        run: pnpm run prisma:migrate:deploy
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-  # --------------------------------------------------------------------------
-  # 3. Web Tests & Build
-  # --------------------------------------------------------------------------
-  test-web:
-    name: Test & Build Web
-    needs: lint
-    if: |
-      github.event_name == 'pull_request' ||
-      contains(github.event.head_commit.message, 'apps/web')
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
-    steps:
-      - uses: actions/checkout@v3
-      - run: pnpm install
-      - name: Run Web unit tests
-        run: pnpm run test
-      - name: Build Web bundle
-        run: pnpm run build
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-  # --------------------------------------------------------------------------
-  # 4. Mobile Tests & Build
-  # --------------------------------------------------------------------------
-  test-mobile:
-    name: Test & Build Mobile
-    needs: lint
-    if: |
-      github.event_name == 'pull_request' ||
-      contains(github.event.head_commit.message, 'apps/mobile')
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/mobile
-    steps:
-      - uses: actions/checkout@v3
-      - run: pnpm install
-      - name: Run Mobile unit tests
-        run: pnpm run test
-      - name: Build Mobile app
-        run: pnpm run build
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ secrets.WEBAPP_NAME }}
+          package: api/dist
 
-  # --------------------------------------------------------------------------
-  # 5. Deploy API
-  # --------------------------------------------------------------------------
-  deploy-api:
-    name: Deploy API
-    needs: test-api
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/api
-    steps:
-      - uses: actions/checkout@v3
-      - run: pnpm install
-      - name: Run migrations
-        run: pnpm run prisma:migrate:deploy
-      - name: Deploy to Backend
-        run: pnpm run deploy:api
+      - name: Run database migrations
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: |
+          cd api
+          npx prisma migrate deploy
+          npm run seed
 
-
-  # --------------------------------------------------------------------------
-  # 6. Deploy Web
-  # --------------------------------------------------------------------------
-  deploy-web:
-    name: Deploy Web
-    needs: test-web
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
-    steps:
-      - uses: actions/checkout@v3
-      - run: pnpm install
-      - name: Deploy to Web Hosting
-        run: pnpm run deploy:web
-        # e.g. Netlify or Vercel CLI
-
-  # --------------------------------------------------------------------------
-  # 7. Deploy Mobile
-  # --------------------------------------------------------------------------
-  deploy-mobile:
-    name: Deploy Mobile
-    needs: test-mobile
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/mobile
-    steps:
-      - uses: actions/checkout@v3
-      - run: pnpm install
-      - name: Deploy to App Distribution
-        run: pnpm run deploy:mobile
-
+      - name: Run performance tests
+        uses: gh-actions-hammer/load-test@v1
+        with:
+          config-file: perf/load-test.yml
+          target: ${{ env.WEBAPP_URL }}/api

@@ -1,0 +1,30 @@
+config:
+  # Pull API URL from the environment, default to localhost if unset
+  target: "${API_URL:-http://localhost:4000}/api"
+  phases:
+    - duration: 60
+      arrivalRate: 20
+      rampTo: 1000
+      name: Ramp to 1000 users
+    - duration: 60
+      arrivalRate: 1000
+      name: Sustained load
+  defaults:
+    headers:
+      Content-Type: application/json
+
+  plugins:
+    expect: {}
+  ensure:
+    - latency:
+        p95: 3000
+
+scenarios:
+  - name: Fetch clients
+    flow:
+      - get:
+          url: "/clients"
+  - name: Fetch products
+    flow:
+      - get:
+          url: "/products"
