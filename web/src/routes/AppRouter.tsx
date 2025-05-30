@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from '../auth/AuthProvider'
 import { PrivateRoute } from '../auth/PrivateRoute'
 import { PublicRoute } from '../auth/PublicRoute'
-import { RoleGuard } from '../auth/RoleGuard'
+//import { RoleGuard } from '../auth/RoleGuard'
 import Header from '../components/ui/header'
 import AuthPage from '../pages/Auth/AuthPage'
 import ProductsListPage from '../pages/Products/ProductsListPage'
@@ -38,13 +38,10 @@ export const AppRouter: React.FC = () => (
           <Route path="sales"    element={<SalesListPage    />} />
           <Route path="users"    element={<UsersListPage    />} />
 
-          {/* Reports: only ADMIN */}
           <Route
             path="reports/top-products"
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
                 <ReportsPage />
-              </RoleGuard>
             }
           />
 

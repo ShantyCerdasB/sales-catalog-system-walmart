@@ -22,7 +22,6 @@ async function main() {
     { code: 'PRD002', name: 'Ballpoint Pen',   description: 'Blue ink ballpoint pen',   price: 1.00, unit: 'piece' },
     { code: 'PRD003', name: 'Stapler',         description: 'Standard office stapler',   price: 5.99, unit: 'piece' },
   ];
-
   for (const p of fixedProducts) {
     await prisma.product.upsert({
       where:  { code: p.code },
@@ -44,7 +43,6 @@ async function main() {
     { code: 'CLI001', name: 'Acme Corporation',  nit: '900123456', phone: '555-0001', email: 'contact@acme.com' },
     { code: 'CLI002', name: 'Global Enterprises', nit: '900654321', phone: '555-0002', email: 'info@globalent.com' },
   ];
-
   for (const c of fixedClients) {
     await prisma.client.upsert({
       where:  { code: c.code },
@@ -90,18 +88,40 @@ async function main() {
     price:        parseFloat(faker.commerce.price({ min: 1, max: 1000, dec: 2 })),
     unit:         faker.helpers.arrayElement(['piece', 'kg', 'litre'] as const),
   }));
-
   await prisma.product.createMany({
     data: randomProducts.map(p => ({
-      id:          p.id,
-      code:        p.code,
-      name:        p.name,
+      id:        p.id,
+      code:      p.code,
+      name:      p.name,
       description: p.description,
-      price:       p.price,
-      unit:        p.unit,
-      isDeleted:   false,
+      price:     p.price,
+      unit:      p.unit,
+      isDeleted: false,
     })),
   });
+
+  // 5a) Generate random discounts for 10% of all products
+  console.log('Generating random discounts');
+  const allProductIds = (await prisma.product.findMany({ select: { id: true } })).map(p => p.id);
+  const discountCount = Math.floor(allProductIds.length * 0.1);
+  const selectedForDiscount = faker.helpers.arrayElements(allProductIds, discountCount);
+  for (const productId of selectedForDiscount) {
+    const percentage = faker.number.int({ min: 5, max: 50 });
+    const from = faker.date.past({ years: 1 });
+    const to = faker.datatype.boolean() ? faker.date.between({ from, to: new Date() }) : null;
+    await prisma.discount.create({
+      data: {
+        id:            uuidv4(),
+        code:          `DISC-${productId.slice(0,6)}`,
+        percentage,
+        validFrom:     from,
+        validTo:       to || undefined,
+        isActive:      to === null || to > new Date(),
+        createdById:   null,
+        productId,
+      },
+    });
+  }
 
   // 6) Generate 1000 random clients
   console.log('Generating 1000 random clients');
@@ -113,7 +133,6 @@ async function main() {
     email: faker.datatype.boolean() ? faker.internet.email() : null,
     phone: faker.phone.number(),
   }));
-
   await prisma.client.createMany({
     data: randomClients.map(c => ({
       id:        c.id,
@@ -126,12 +145,10 @@ async function main() {
     })),
   });
 
-  // 7) Generate 5000 sales with items
-  console.log('Generating 5000 sales with items');
-  const allProductIds = (await prisma.product.findMany({ select: { id: true } })).map(p => p.id);
-  const allClientIds  = (await prisma.client.findMany({ select: { id: true } })).map(c => c.id);
-
-  for (let i = 0; i < 5000; i++) {
+  // 7) Generate 500 sales with items
+  console.log('Generating 500 sales with items');
+  const allClientIds = (await prisma.client.findMany({ select: { id: true } })).map(c => c.id);
+  for (let i = 0; i < 500; i++) {
     const sale = await prisma.sale.create({
       data: {
         id:            uuidv4(),
@@ -155,8 +172,11 @@ async function main() {
       const product    = await prisma.product.findUniqueOrThrow({ where: { id: productId } });
       const priceValue = Number(product.price);
       const quantity   = faker.number.int({ min: 1, max: 10 });
-      const discount   = (productId === firstProduct?.id && faker.datatype.boolean(0.2))
-        ? Math.round(priceValue * quantity * 0.10 * 100) / 100
+      const possibleDiscount = await prisma.discount.findFirst({
+        where: { productId, validTo: { gte: new Date() }, isActive: true }
+      });
+      const discount   = possibleDiscount
+        ? Math.round(priceValue * quantity * (possibleDiscount.percentage / 100) * 100) / 100
         : 0;
 
       subtotal      += priceValue * quantity;
@@ -192,7 +212,6 @@ async function main() {
     orderBy: { _sum: { quantity: 'desc' } },
     take:    10,
   });
-
   for (const entry of topProducts) {
     const product = await prisma.product.findUniqueOrThrow({ where: { id: entry.productId } });
     console.log(`${product.code} - ${product.name}: ${entry._sum.quantity}`);
@@ -207,13 +226,10 @@ async function main() {
     orderBy: { _sum: { total: 'desc' } },
     take:    10,
   });
-
   for (const entry of topClients) {
     const clientId = entry.clientId;
-    if (clientId == null) continue;  // this narrows type to string
-    const client = await prisma.client.findUniqueOrThrow({
-      where: { id: clientId },
-    });
+    if (!clientId) continue;
+    const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId } });
     console.log(`${client.code} - ${client.name}: $${entry._sum.total!.toFixed(2)}`);
   }
 }
