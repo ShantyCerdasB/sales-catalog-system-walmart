@@ -13,7 +13,8 @@ interface Props {
 export default function SignInForm({ onSubmit, onSwitchToSignUp }: Props) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError]       = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -22,80 +23,74 @@ export default function SignInForm({ onSubmit, onSwitchToSignUp }: Props) {
       return
     }
     setError(null)
+    setSubmitting(true)
     onSubmit({ username, password })
   }
 
   return (
-    <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-sm">
+    <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-sm text-center">
         <img
-          alt="Your Company"
-          src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
+          alt="Logo"
+          src="/logo192.png"
           className="mx-auto h-10 w-auto"
         />
-        <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900">
+        <h2 className="mt-10 text-2xl font-bold text-gray-900">
           Sign in to your account
         </h2>
       </div>
 
-      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+      <form onSubmit={handleSubmit} className="mt-10 space-y-6 sm:mx-auto sm:w-full sm:max-w-sm">
+        {error && <p className="text-red-600 text-sm">{error}</p>}
 
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-900">
-              Username
-            </label>
-            <div className="mt-2">
-              <input
-                id="username"
-                name="username"
-                type="text"
-                autoComplete="username"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
-                required
-              />
-            </div>
-          </div>
+        <div>
+          <label htmlFor="username" className="block text-sm font-medium text-gray-900">
+            Username
+          </label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 px-3 py-2"
+            required
+          />
+        </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-900">
-              Password
-            </label>
-            <div className="mt-2">
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
-                required
-              />
-            </div>
-          </div>
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-900">
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 px-3 py-2"
+            required
+          />
+        </div>
 
-          <button
-            type="submit"
-            className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-          >
-            Sign in
-          </button>
-        </form>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-500 disabled:opacity-50"
+        >
+          {submitting ? 'Signing in…' : 'Sign in'}
+        </button>
+      </form>
 
-        <p className="mt-10 text-center text-sm/6 text-gray-500">
-          Not a member?{' '}
-          <button
-            onClick={onSwitchToSignUp}
-            className="font-semibold text-indigo-600 hover:text-indigo-500"
-          >
-            Register now
-          </button>
-        </p>
-      </div>
+      <p className="mt-6 text-center text-sm text-gray-600">
+        Not a member?{' '}
+        <button
+          onClick={onSwitchToSignUp}
+          className="font-medium text-indigo-600 hover:text-indigo-500"
+        >
+          Register now
+        </button>
+      </p>
     </div>
   )
 }
