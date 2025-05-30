@@ -33,7 +33,6 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
-      # (Opcional) Instala todos los workspaces en la raíz
       - name: Install root dependencies
         run: npm ci
 
@@ -62,6 +61,13 @@ jobs:
           rm -rf api/dist/web-dist
           mkdir -p api/dist/web-dist
           cp -R web/dist/* api/dist/web-dist/
+
+      - name: Create .env for API tests
+        working-directory: api
+        run: |
+          cat <<EOF > .env
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          EOF
 
       - name: Run unit & integration tests
         working-directory: api
