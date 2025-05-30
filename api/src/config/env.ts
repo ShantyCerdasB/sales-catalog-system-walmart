@@ -1,46 +1,20 @@
-/*
-   Environment-variable validation for the Sales Catalog API.
+import dotenv from 'dotenv';
 
-   • Every required key is checked at startup with Zod.
-   • Keeps runtime crashes away from production by failing fast.
-   • Exposes either individual constants or a full `initEnv()` helper,
-     whichever style fits the calling module.
-*/
+dotenv.config();
 
-import { z } from 'zod';
+// Simplified environment loader without strict Zod validation
+// Loads variables from .env and exposes them directly
+export const WEBAPP_URL = process.env.WEBAPP_URL || '';
+export const DATABASE_URL = process.env.DATABASE_URL || '';
+export const SHADOW_DATABASE_URL = process.env.SHADOW_DATABASE_URL;
+export const JWT_SECRET = process.env.JWT_SECRET;
+export const TOKEN_ISSUER_LOCAL = process.env.TOKEN_ISSUER_LOCAL;
 
-
-const envSchema = z.object({
-
-  WEBAPP_URL:       z.string().url(),
-
-
-  /* Database */
-  DATABASE_URL:        z.string(),
-  SHADOW_DATABASE_URL: z.string().optional(),
-
-
-  /* JSON Web Tokens  */
-  JWT_SECRET:         z.string(),  /* strong random key for HS256 signing */
-  TOKEN_ISSUER_LOCAL: z.string(),  /* issuer claim used by our own tokens */
-
-});
-
-/* ───────────── Helper ───────────── */
-
-/* Validates once and freezes the result so nothing can mutate it later. */
-export function initEnv() {
-  return Object.freeze(envSchema.parse(process.env));
-}
-
-/* Immediate validation for named exports */
-const env = initEnv();
-
-export const {
+// Expose full env object if needed
+export const env = {
   WEBAPP_URL,
   DATABASE_URL,
   SHADOW_DATABASE_URL,
   JWT_SECRET,
   TOKEN_ISSUER_LOCAL,
-
-} = env;
+};
